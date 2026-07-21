@@ -11,131 +11,116 @@ const initialDevices: Device[] = [
   { id: "water-01", name: "Water-01", room: "Поилка", status: "attention" }
 ];
 
-const events = [
-  { time: "03:15", title: "Ночная активность", image: "quail-night" },
-  { time: "07:42", title: "Птицы у кормушки", image: "quail-feed" },
-  { time: "08:21", title: "Снесено яйцо", image: "eggs" },
-  { time: "11:08", title: "Первый птенец", image: "chick" }
-];
+const Icon = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => <span className={`ui-icon ${className}`}>{children}</span>;
 
 export default function HomePage() {
   const [view, setView] = useState<View>("home");
-  const [temperatureHigh, setTemperatureHigh] = useState(false);
   const [devices, setDevices] = useState<Device[]>(initialDevices);
   const [question, setQuestion] = useState("");
   const [messages, setMessages] = useState<string[]>(["Срочных проблем нет. Система работает штатно."]);
 
-  const attentionCount = useMemo(() => devices.filter((device) => device.status === "attention").length, [devices]);
+  const attentionCount = useMemo(() => devices.filter((d) => d.status === "attention").length + 1, [devices]);
 
-  function addDevice() {
-    const next = devices.length + 1;
-    setDevices((items) => [...items, { id: `module-${next}`, name: `Новый модуль ${next}`, room: "Перепелиный цех", status: "online" }]);
-    setView("more");
-  }
-
-  function sendQuestion() {
+  const resolveAttention = () => setDevices((items) => items.map((d) => d.id === "water-01" ? { ...d, status: "online" } : d));
+  const sendQuestion = () => {
     const value = question.trim();
     if (!value) return;
-    setMessages((items) => [...items, `Вы: ${value}`, temperatureHigh ? "AgroOS: Температура повышена. Вентиляция включена автоматически." : "AgroOS: Критических отклонений нет."]);
+    setMessages((items) => [...items, `Вы: ${value}`, "AgroOS: По текущим данным критических отклонений нет."]);
     setQuestion("");
-  }
+  };
 
   return (
     <main className="app-shell">
       <header className="topbar">
-        <div className="brand"><span className="leaf-mark">◒</span><span>AgroOS</span></div>
+        <div className="brand">
+          <span className="brand-leaf">❧</span>
+          <span>AgroOS</span>
+        </div>
         <div className="header-actions">
-          <button className="icon-button bell" aria-label="Уведомления"><span>♢</span><b>{attentionCount + 1}</b></button>
+          <button className="icon-button" aria-label="Уведомления"><span className="bell-shape">♢</span><b>3</b></button>
           <div className="avatar">В</div>
         </div>
       </header>
 
-      {view === "home" && (
-        <section className="home-view">
-          <div className="hero-copy">
-            <h1>Доброе утро, Виталий! <span className="wave">👋</span></h1>
-            <p className={temperatureHigh ? "system-status warning" : "system-status"}><span className="status-check">✓</span>{temperatureHigh ? "Система регулирует климат" : "Хозяйство работает штатно"}</p>
-            <p className="muted last-check">Последняя проверка 2 мин назад</p>
+      {view === "home" && <section className="home-view">
+        <div className="hero-copy">
+          <h1>Доброе утро, Виталий! <span className="wave">👋</span></h1>
+          <p className="system-status"><span className="status-check">✓</span>Хозяйство работает штатно</p>
+          <p className="last-check">Последняя проверка 2 мин назад</p>
+        </div>
+
+        <RoomCard
+          imageClass="quail-photo"
+          title="Перепелиный цех"
+          status="Всё спокойно"
+          subtitle="Перепела активны, климат в норме"
+          icon="🐦"
+          accent="green"
+        />
+
+        <div className="pager"><i className="active"/><i/><i/><i/></div>
+
+        <RoomCard
+          imageClass="incubator-photo"
+          title="Инкубатор"
+          status="Вывод идёт по плану"
+          subtitle="Ожидается 18 птенцов сегодня"
+          icon="🥚"
+          accent="amber"
+        />
+
+        <section className="panel attention-panel">
+          <div className="panel-title"><h2><span className="title-bell">♧</span>Требуют внимания</h2><span className="counter">2</span></div>
+          {devices.some((d) => d.id === "water-01" && d.status === "attention") && <div className="attention-row">
+            <Icon className="warning-icon">!</Icon>
+            <div className="attention-copy"><b>Обновить прошивку</b><p>Water-01 (Поилка)</p></div>
+            <button className="action-button green-action" onClick={resolveAttention}>Обновить</button>
+          </div>}
+          <div className="attention-row">
+            <Icon className="clock-icon">◷</Icon>
+            <div className="attention-copy"><b>Через 3 часа кормление</b><p>Перепелиный цех</p></div>
+            <button className="action-button neutral-action">Подробнее</button>
           </div>
-
-          <article className="room-card primary-room">
-            <div className="camera-feed quail-photo">
-              <span className="live-badge">● LIVE</span>
-              <button className="more-button">•••</button>
-            </div>
-            <div className="room-summary">
-              <div className="round-icon green">◌</div>
-              <div className="room-copy">
-                <h3>Перепелиный цех</h3>
-                <strong className={temperatureHigh ? "warning-text" : "ok-text"}>{temperatureHigh ? "Вентиляция включена" : "Всё спокойно"}</strong>
-                <p>Перепела активны, климат в норме</p>
-              </div>
-              <button className="chevron">›</button>
-            </div>
-          </article>
-
-          <div className="pager"><i className="active" /><i /><i /><i /></div>
-
-          <article className="room-card secondary-room">
-            <div className="camera-feed incubator-photo">
-              <span className="live-badge">● LIVE</span>
-              <button className="more-button">•••</button>
-            </div>
-            <div className="room-summary">
-              <div className="round-icon amber">◉</div>
-              <div className="room-copy">
-                <h3>Инкубатор</h3>
-                <strong className="amber-text">Вывод идёт по плану</strong>
-                <p>Ожидается 18 птенцов сегодня</p>
-              </div>
-              <button className="chevron">›</button>
-            </div>
-          </article>
-
-          <section className="panel attention-panel">
-            <div className="panel-title"><h2>Требуют внимания</h2><span className="counter">2</span></div>
-            {devices.filter((device) => device.status === "attention").map((device) => (
-              <div className="attention-row" key={device.id}>
-                <span className="line-icon amber-outline">△</span>
-                <div><b>Обновить прошивку</b><p>{device.name} (Поилка)</p></div>
-                <button onClick={() => setDevices((items) => items.map((item) => item.id === device.id ? { ...item, status: "online" } : item))}>Обновить</button>
-              </div>
-            ))}
-            <div className="attention-row">
-              <span className="line-icon clock-icon">◷</span>
-              <div><b>Через 3 часа кормление</b><p>Перепелиный цех</p></div>
-              <button className="plain-button">Подробнее</button>
-            </div>
-          </section>
-
-          <section className="panel events-panel">
-            <div className="panel-title"><h2>Последние события</h2><button className="text-button">Смотреть все</button></div>
-            <div className="events-strip">
-              {events.map((event) => (
-                <article className="event-card" key={event.time}>
-                  <div className={`event-image ${event.image}`}><span>{event.time}</span><b>▶</b></div>
-                  <p>{event.title}</p>
-                </article>
-              ))}
-            </div>
-          </section>
         </section>
-      )}
 
-      {view === "cameras" && (
-        <section><h1>Камеры</h1><p className="muted">Живое изображение и события хозяйства</p><div className="camera-grid">{["Перепелиный цех", "Инкубатор", "Кормовой склад"].map((room, index) => <article className="room-card" key={room}><div className={`camera-feed ${index === 0 ? "quail-photo" : index === 1 ? "incubator-photo" : "storage-photo"}`}><span className="live-badge">● LIVE</span></div><div className="room-summary"><div className="round-icon green">◌</div><div className="room-copy"><h3>{room}</h3><strong className="ok-text">Связь стабильна</strong></div></div></article>)}</div></section>
-      )}
+        <section className="panel events-panel">
+          <div className="panel-title"><h2>Последние события</h2><button className="text-button">Смотреть все</button></div>
+          <div className="events-strip">
+            <EventCard image="event-night" time="03:15" title="Ночная активность" />
+            <EventCard image="event-feed" time="07:42" title="Птицы у кормушки" />
+            <EventCard image="event-eggs" time="08:21" title="Снесено яйцо" />
+            <EventCard image="event-chick" time="11:08" title="Первый птенец" />
+          </div>
+        </section>
+      </section>}
 
-      {view === "assistant" && (
-        <section><h1>ИИ-помощник</h1><p className="muted">Отвечает на основе состояния хозяйства</p><div className="panel assistant-card">{messages.map((message, index) => <div className="message" key={`${message}-${index}`}>{message}</div>)}<div className="assistant-input"><input value={question} onChange={(event) => setQuestion(event.target.value)} onKeyDown={(event) => event.key === "Enter" && sendQuestion()} placeholder="Задайте вопрос" /><button onClick={sendQuestion}>Отправить</button></div></div></section>
-      )}
+      {view === "cameras" && <section className="secondary-view"><h1>Камеры</h1><p>Живое изображение и события хозяйства</p><RoomCard imageClass="quail-photo" title="Перепелиный цех" status="Связь стабильна" subtitle="Камера работает" icon="🐦" accent="green"/><div className="stack-gap"/><RoomCard imageClass="incubator-photo" title="Инкубатор" status="Связь стабильна" subtitle="Камера работает" icon="🥚" accent="amber"/></section>}
 
-      {view === "more" && (
-        <section><h1>Ещё</h1><p className="muted">Устройства, автоматизация и настройка</p><div className="device-grid">{devices.map((device) => <article className="panel device-card" key={device.id}><div className="device-head"><h3>{device.name}</h3><span className={device.status === "online" ? "pill" : "pill warning-pill"}>{device.status === "online" ? "Работает" : "Внимание"}</span></div><p>{device.room}</p><small>{device.id}</small></article>)}<button className="panel add-device" onClick={addDevice}><span>＋</span><b>Подключить оборудование</b><small>AgroOS определит возможности устройства</small></button></div></section>
-      )}
+      {view === "assistant" && <section className="secondary-view"><h1>ИИ-помощник</h1><p>Отвечает на основе состояния хозяйства</p><div className="panel assistant-card">{messages.map((m, i) => <div className="message" key={i}>{m}</div>)}<div className="assistant-input"><input value={question} onChange={(e) => setQuestion(e.target.value)} onKeyDown={(e) => e.key === "Enter" && sendQuestion()} placeholder="Задайте вопрос"/><button onClick={sendQuestion}>Отправить</button></div></div></section>}
 
-      {view === "home" && <button className="floating-button" onClick={addDevice}>＋</button>}
-      <nav className="bottom-nav">{([ ["home", "⌂", "Хозяйство"], ["cameras", "▣", "Камеры"], ["assistant", "▢", "ИИ-помощник"], ["more", "☰", "Ещё"] ] as const).map(([id, icon, label]) => <button key={id} className={view === id ? "active" : ""} onClick={() => setView(id)}><span>{icon}</span>{label}</button>)}</nav>
+      {view === "more" && <section className="secondary-view"><h1>Ещё</h1><p>Устройства, автоматизация и настройка</p><div className="device-grid">{devices.map((d) => <article className="panel device-card" key={d.id}><h3>{d.name}</h3><p>{d.room}</p><span className={d.status === "online" ? "pill" : "pill warning-pill"}>{d.status === "online" ? "Работает" : "Внимание"}</span></article>)}</div></section>}
+
+      <nav className="bottom-nav">
+        <NavButton active={view === "home"} icon="⌂" label="Хозяйство" onClick={() => setView("home")}/>
+        <NavButton active={view === "cameras"} icon="▣" label="Камеры" onClick={() => setView("cameras")}/>
+        <NavButton active={view === "assistant"} icon="▢" label="ИИ-помощник" onClick={() => setView("assistant")}/>
+        <NavButton active={view === "more"} icon="☰" label="Ещё" onClick={() => setView("more")}/>
+      </nav>
     </main>
   );
+}
+
+function RoomCard({ imageClass, title, status, subtitle, icon, accent }: { imageClass:string; title:string; status:string; subtitle:string; icon:string; accent:"green"|"amber" }) {
+  return <article className="room-card">
+    <div className={`camera-feed ${imageClass}`}><span className="live-badge">● LIVE</span><button className="more-button">•••</button></div>
+    <div className="room-summary"><div className={`round-icon ${accent}`}>{icon}</div><div className="room-copy"><h3>{title}</h3><strong className={accent === "green" ? "ok-text" : "amber-text"}>{status}</strong><p>{subtitle}</p></div><button className="chevron">›</button></div>
+  </article>;
+}
+
+function EventCard({ image, time, title }: { image:string; time:string; title:string }) {
+  return <article className="event-card"><div className={`event-image ${image}`}><span>{time}</span><b>▶</b></div><p>{title}</p></article>;
+}
+
+function NavButton({ active, icon, label, onClick }: { active:boolean; icon:string; label:string; onClick:()=>void }) {
+  return <button className={active ? "active" : ""} onClick={onClick}><span>{icon}</span><b>{label}</b></button>;
 }
