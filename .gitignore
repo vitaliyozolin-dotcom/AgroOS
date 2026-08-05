@@ -1,7 +1,4 @@
-node_modules/
 .next/
-out/
-.env*
-!.env.example
-.DS_Store
-npm-debug.log*
+node_modules/
+data/*.sqlite*
+.env

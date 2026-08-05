@@ -1,0 +1,52 @@
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    environment:
+      AGROOS_DB_PATH: /data/agroos.sqlite
+      AGROOS_DEVICE_KEY: ${AGROOS_DEVICE_KEY}
+    volumes:
+      - agroos_data:/data
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>{if(!r.ok)process.exit(1)})"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  backup:
+    build: .
+    restart: unless-stopped
+    command: ["node", "scripts/backup-loop.mjs"]
+    environment:
+      AGROOS_DB_PATH: /data/agroos.sqlite
+      AGROOS_BACKUP_PATH: /data/backups
+    volumes:
+      - agroos_data:/data
+    depends_on:
+      app:
+        condition: service_healthy
+
+  caddy:
+    image: caddy:2.10.2-alpine
+    restart: unless-stopped
+    environment:
+      AGROOS_SITE_ADDRESS: ${AGROOS_SITE_ADDRESS}
+      AGROOS_DASHBOARD_USER: ${AGROOS_DASHBOARD_USER}
+      AGROOS_DASHBOARD_PASSWORD_HASH: ${AGROOS_DASHBOARD_PASSWORD_HASH}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      app:
+        condition: service_healthy
+
+volumes:
+  agroos_data:
+  caddy_data:
+  caddy_config:

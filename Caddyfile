@@ -1,0 +1,22 @@
+{$AGROOS_SITE_ADDRESS} {
+  encode zstd gzip
+
+  @telemetry_post {
+    path /api/telemetry
+    method POST
+  }
+  handle @telemetry_post {
+    reverse_proxy app:3000
+  }
+
+  handle /api/health {
+    reverse_proxy app:3000
+  }
+
+  handle {
+    basic_auth {
+      {$AGROOS_DASHBOARD_USER} {$AGROOS_DASHBOARD_PASSWORD_HASH}
+    }
+    reverse_proxy app:3000
+  }
+}
